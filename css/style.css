@@ -5,15 +5,15 @@
   font-family: "Times New Roman", serif;
 }
 
-/* ✅ Mobile: gradients légers */
+/* =========================================
+   1. BACKGROUND & LUMIÈRES (OPTIMISÉ)
+   ========================================= */
+
 body {
-  background:
-    radial-gradient(circle at 18% 85%, rgba(0, 255, 120, 0.28), rgba(0, 255, 200, 0) 55%),
-    radial-gradient(circle at 85% 15%, rgba(0, 255, 170, 0.22), rgba(0, 255, 200, 0) 55%),
-    #000;
-  overflow: hidden;
-  /* Optimisation globale */
   background-color: #000;
+  /* Fond de base simple et performant */
+  background: #000;
+  overflow: hidden;
 }
 
 .stage {
@@ -25,72 +25,74 @@ body {
   isolation: isolate;
 }
 
+/* ✅ CORRECTION LAG : 
+   Au lieu de flouter (blur) de petits éléments et de les agrandir, 
+   on dessine directement de grands dégradés transparents.
+   Le rendu est identique mais charge GPU = 0.
+*/
+
 .ambient-light,
 .ambient-light-top-right {
-  display: none;
+  position: fixed;
+  z-index: 0; /* Derrière tout le reste */
+  pointer-events: none; /* Ne bloque pas le clic */
+  will-change: transform; /* Optimisation compositing */
+  border-radius: 50%;
 }
 
-/* ✅ Desktop: Optimisation Rendering */
-@media (hover: hover) and (pointer: fine) {
-  body { background: #000; }
+/* Lumière Verte/Bleutée (Bas Gauche) */
+.ambient-light {
+  bottom: -25vh; /* Positionnement large */
+  left: -25vw;
+  width: 100vw;  /* Grande taille native */
+  height: 100vw;
   
-  .ambient-light,
-  .ambient-light-top-right {
-    display: block;
-    pointer-events: none;
-    z-index: 0;
-    will-change: transform; 
-    /* Force le GPU layer sans flou coûteux ici */
-    position: fixed;
-  }
+  /* Le gradient fait le flou naturellement */
+  background: radial-gradient(
+    circle,
+    rgba(0, 255, 120, 0.18) 0%,   /* Coeur lumineux mais doux */
+    rgba(0, 255, 170, 0.05) 40%,  /* Diffusion large */
+    transparent 70%               /* Fin invisible */
+  );
+}
 
-  /* 🛠 OPTIMISATION MAJEURE : "The Scale Trick"
-     On réduit la taille physique (width/height) et on réduit le rayon du blur.
-     Ensuite, on utilise transform: scale() pour remettre à la taille visuelle.
-     Cela réduit la charge GPU de 90%.
-  */
+/* Lumière Cyan/Blanche (Haut Droite) */
+.ambient-light-top-right {
+  top: -30vh;
+  right: -30vw;
+  width: 110vw;
+  height: 110vw;
+  
+  background: radial-gradient(
+    circle,
+    rgba(0, 255, 170, 0.15) 0%,
+    rgba(120, 255, 210, 0.05) 45%,
+    transparent 70%
+  );
+}
 
+/* Ajustements pour petits écrans (Mobile) */
+@media (max-width: 768px) {
   .ambient-light {
-    bottom: -22vh; /* Ajusté pour l'échelle */
-    left: -10vw;   /* Ajusté pour l'échelle */
-    width: 60vw;   /* Divisé par ~4 */
-    height: 60vw;  /* Divisé par ~4 */
-    background: radial-gradient(
-      circle,
-      rgba(0, 255, 120, 0.65) 0%,
-      rgba(0, 255, 170, 0.10) 10%,
-      rgba(0, 255, 200, 0) 80%
-    );
-    /* Blur réduit (220px / 4 = 55px) */
-    filter: blur(55px); 
-    /* On agrandit x4 pour retrouver la taille d'origine */
-    transform: scale(4) translateZ(0); 
-    opacity: 0.8; /* Légère correction d'intensité due au scale */
+    width: 140vw;
+    height: 140vw;
+    opacity: 0.8;
+    bottom: -15vh;
+    left: -35vw;
   }
-
+  
   .ambient-light-top-right {
-    top: -28vh;
-    right: -15vw;
-    width: 55vw;
-    height: 58vw;
-    background:
-      radial-gradient(
-        ellipse at 65% 35%,
-        rgba(0, 255, 170, 0.55) 0%,
-        rgba(0, 255, 120, 0.14) 18%,
-        rgba(0, 255, 200, 0) 72%
-      ),
-      radial-gradient(
-        circle at 35% 65%,
-        rgba(120, 255, 210, 0.22) 0%,
-        rgba(0, 255, 200, 0) 60%
-      );
-    filter: blur(60px); /* 240px / 4 */
-    /* On combine le scale x4 avec la rotation existante */
-    transform: scale(4) rotate(16deg) translateZ(0);
-    opacity: 0.95;
+    width: 130vw;
+    height: 130vw;
+    opacity: 0.8;
+    top: -20vh;
+    right: -40vw;
   }
 }
+
+/* =========================================
+   2. GESTION DE LA CARTE (3D)
+   ========================================= */
 
 .card-stack {
   display: flex;
@@ -109,12 +111,6 @@ body {
   }
 }
 
-@media (max-width: 480px) {
-  .glitch-text {
-    font-size: calc(clamp(14px, 3.2vw, 42px) * 1.3);
-  }
-}
-
 .tilt-area {
   padding: clamp(16px, 4vw, 56px);
   display: grid;
@@ -126,7 +122,9 @@ body {
 
 @media (hover: hover) and (pointer: fine) {
   .tilt-area {
+    /* Zone de tilt agrandie pour Desktop */
     padding: clamp(40px, 8vw, 160px);
+    margin-bottom: -40px; /* Ajustement visuel */
   }
 }
 
@@ -138,15 +136,14 @@ body {
   -webkit-transform-style: preserve-3d;
   cursor: pointer;
   z-index: 2;
-  /* Ombre optimisée : moins de spread pour performance */
+  /* Ombre : on garde spread faible pour perf */
   box-shadow:
     0 0 12px rgba(255,255,255,0.14),
     0 20px 45px rgba(0,0,0,0.72);
   will-change: transform;
   transform: perspective(1200px) rotateX(0deg) rotateY(0deg) translateZ(0);
-  /* contain: paint layout; Retiré car peut couper les effets 3D sur certains navigateurs */
   border-radius: 16px;
-  background-color: #000; /* Fond noir par défaut pour éviter la transparence coûteuse */
+  background-color: #000;
 }
 
 @media (max-width: 480px) {
@@ -155,10 +152,12 @@ body {
   }
 }
 
+/* Désactive transition sur mobile pour réactivité tactile */
 @media (pointer: coarse) {
   .card-container { transition: none; }
 }
 
+/* Transition douce au retour de la souris */
 @media (hover: hover) and (pointer: fine) {
   .card-container { transition: transform 0.10s ease-out; }
 }
@@ -169,7 +168,7 @@ body {
   overflow: hidden;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  border-radius: inherit; /* Assure que le border-radius suit */
+  border-radius: inherit;
 }
 
 .card-front {
@@ -181,6 +180,7 @@ body {
   background-color: #1a1a1a; 
 }
 
+/* Support WebP natif */
 @supports (background-image: image-set(url("x.webp") type("image/webp"))) {
   .card-front {
     background-image: image-set(
@@ -188,6 +188,10 @@ body {
     );
   }
 }
+
+/* =========================================
+   3. EFFETS VISUELS (Reflets / Shine)
+   ========================================= */
 
 .reflection {
   position: absolute;
@@ -199,14 +203,13 @@ body {
   --py: 50%;
   opacity: 0.35;
   background: radial-gradient(circle at var(--px) var(--py), rgba(255,255,255,0.22), rgba(255,255,255,0) 58%);
-  /* Optimisation: on prévient le navigateur que le background change */
   will-change: background; 
 }
 
 @media (hover: hover) and (pointer: fine) {
   .reflection {
     opacity: 0.50;
-    mix-blend-mode: overlay; /* 'screen' peut être lourd, overlay est souvent mieux géré sur fond sombre */
+    mix-blend-mode: overlay; 
     background:
       radial-gradient(
         circle at var(--px) var(--py),
@@ -242,6 +245,10 @@ body {
   30%, 100% { transform: translateX(120%) translateZ(2px); }
 }
 
+/* =========================================
+   4. TEXTE GLITCH & TYPOGRAPHIE
+   ========================================= */
+
 .glitch-text {
   color: #b8fffb;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -257,13 +264,12 @@ body {
   overflow: hidden;
   text-overflow: clip;
   cursor: pointer;
-  /* Optimisation texte */
   transform: translateZ(0);
 }
 
 @media (max-width: 480px) {
   .glitch-text {
-    font-size: calc(clamp(20px, 3.2vw, 42px) * 1.3);
+    font-size: calc(clamp(14px, 3.2vw, 42px) * 1.3);
   }
 }
 
@@ -279,6 +285,7 @@ body {
 .glitch-text::before { color: #2bfff3; transform: translate(2px,0); }
 .glitch-text::after { color: #ff2bd6; transform: translate(-2px,0); }
 
+/* Ajustement final de la grille */
 @media (hover: hover) and (pointer: fine) {
   .tilt-area {
     --pad: clamp(40px, 8vw, 160px);

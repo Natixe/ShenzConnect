@@ -198,12 +198,27 @@ body {
   inset: 0;
   border-radius: 18px;
   pointer-events: none;
-  transform: translateZ(1px); 
-  --px: 50%;
-  --py: 50%;
-  opacity: 0.35;
-  background: radial-gradient(circle at var(--px) var(--py), rgba(255,255,255,0.22), rgba(255,255,255,0) 58%);
-  will-change: background; 
+  transform: translateZ(1px);
+  
+  /* On remplace le gradient dynamique par un gradient statique brillant */
+  background: radial-gradient(
+    circle at 50% 50%, 
+    rgba(255,255,255,0.25) 0%, 
+    rgba(255,255,255,0.05) 40%, 
+    rgba(255,255,255,0) 70%
+  );
+  
+  /* Le mix-blend-mode overlay est TRÈS gourmand en ressources GPU */
+  /* On le remplace par une opacité simple qui est gratuite pour le GPU */
+  opacity: 0; 
+  transition: opacity 0.3s ease;
+}
+
+/* Au survol, on allume simplement la lumière au centre */
+@media (hover: hover) and (pointer: fine) {
+  .card-container:hover .reflection {
+    opacity: 1;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {

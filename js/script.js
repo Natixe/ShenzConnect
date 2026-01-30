@@ -52,17 +52,8 @@ function setTransformFromNormalized(nx, ny, cfg) {
     const tx = nx * cfg.move;
     const ty = ny * cfg.move;
 
-    // Utilisation de transform3d pour forcer l'accélération matérielle
+      // Utilisation de transform3d pour forcer l'accélération matérielle
     card.style.transform = `perspective(1200px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translate3d(${tx.toFixed(2)}px, ${ty.toFixed(2)}px, 0)`;
-
-    // Optimisation : On ne met à jour la réflection que si on est sur PC (fine pointer)
-    // car modifier une variable CSS force un repaint partiel
-    if (isFinePointer) {
-        const px = (nx + 0.5) * 100;
-        const py = (ny + 0.5) * 100;
-        reflection.style.setProperty("--px", px.toFixed(1) + "%");
-        reflection.style.setProperty("--py", py.toFixed(1) + "%");
-    }
 }
 
 function tick(now) {
@@ -111,10 +102,6 @@ function resetCard() {
     // Remise à zéro propre avec translate3d
     card.style.transform = "perspective(1200px) rotateX(0deg) rotateY(0deg) translate3d(0,0,0)";
     
-    if (isFinePointer) {
-        reflection.style.setProperty("--px", "50%");
-        reflection.style.setProperty("--py", "50%");
-    }
 }
 
 /* =========================

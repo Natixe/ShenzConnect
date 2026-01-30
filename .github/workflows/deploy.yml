@@ -29,7 +29,7 @@ jobs:
           TARGET: "/var/www/ShenzConnect"
           
           # Fichiers à ignorer (ne pas uploader)
-          EXCLUDE: "/.git/, /.github/, /README.md"
+          EXCLUDE: "/.git/, /.github/, /README.md, /deploy_key, deploy_key.pub"
           
           # ⚙️ ARGS EXPLICATION :
           # -rltgoDzvO : Archive, compression, verbeux (standard rsync)

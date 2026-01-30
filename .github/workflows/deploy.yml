@@ -3,18 +3,26 @@ name: Deploy to VPS
 on:
   push:
     branches:
-      - main  # Déclenche sur chaque push vers la branche principale
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Copy files to VPS
-      run: |
-        scp -r ./ * user@your_vps_ip:/var/www/mon-projet
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Deploy to VPS via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: "."
+          target: "/var/www/ShenzConnect"
+          strip_components: 0
+          rm: true
+          exclude: ".git, .github, README.md"
+          

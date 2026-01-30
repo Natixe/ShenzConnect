@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Éclat Rewards Card</title>
+  
+  <!-- Lien vers le fichier CSS -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Précharge l'image de la carte -->
+  <link rel="preload" as="image" href="assets/americanexpress.webp" />
+</head>
+<body>
+  <div class="ambient-light"></div>
+  <div class="ambient-light-top-right"></div>
+
+  <main class="stage">
+    <div class="card-stack">
+      <div class="tilt-area" id="tiltArea">
+        <div class="card-container" id="card">
+          <div class="card-face card-front">
+            <div class="reflection" id="reflection"></div>
+            <div class="shine"></div>
+          </div>
+        </div>
+      </div>
+      <div id="screen" class="glitch-text" data-text="" target="_blank">----------</div>
+    </div>
+  </main>
+
+  <!-- Lien vers le fichier JavaScript -->-
+  <script src="js/script.js"></script>
+</body>
+</html>

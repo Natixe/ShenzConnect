@@ -15,7 +15,7 @@ const CONFIG = {
     gyro:  { tilt: 36, move: 16, smooth: 0.18 }
 };
 
-const MOBILE_FPS = 25;
+const MOBILE_FPS = 30; // Augmenté légèrement pour fluidité
 const MOBILE_FRAME_DT = 1000 / MOBILE_FPS;
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
@@ -26,14 +26,13 @@ let currNX = 0, currNY = 0;
 let raf = 0;
 let gyroEnabled = false;
 
-// Variables pour le cache de position (Optimisation PC)
+// Variables cache
 let cardRect = null;
 let cardWidthHalf = 0;
 let cardHeightHalf = 0;
 let cardCenterX = 0;
 let cardCenterY = 0;
 
-// Throttle variables
 let settleFrames = 0;
 const SETTLE_EPS = 0.0009;
 const SETTLE_NEED = 10;
@@ -53,20 +52,17 @@ function setTransformFromNormalized(nx, ny, cfg) {
     const tx = nx * cfg.move;
     const ty = ny * cfg.move;
 
-    // Utilisation de toFixed pour éviter les sous-pixels inutiles
-    card.style.transform = `
-        perspective(1200px)
-        rotateX(${rotateX.toFixed(2)}deg)
-        rotateY(${rotateY.toFixed(2)}deg)
-        translateX(${tx.toFixed(2)}px)
-        translateY(${ty.toFixed(2)}px)
-        translateZ(0)
-    `;
+    // Utilisation de transform3d pour forcer l'accélération matérielle
+    card.style.transform = `perspective(1200px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translate3d(${tx.toFixed(2)}px, ${ty.toFixed(2)}px, 0)`;
 
-    const px = (nx + 0.5) * 100;
-    const py = (ny + 0.5) * 100;
-    reflection.style.setProperty("--px", px.toFixed(2) + "%");
-    reflection.style.setProperty("--py", py.toFixed(2) + "%");
+    // Optimisation : On ne met à jour la réflection que si on est sur PC (fine pointer)
+    // car modifier une variable CSS force un repaint partiel
+    if (isFinePointer) {
+        const px = (nx + 0.5) * 100;
+        const py = (ny + 0.5) * 100;
+        reflection.style.setProperty("--px", px.toFixed(1) + "%");
+        reflection.style.setProperty("--py", py.toFixed(1) + "%");
+    }
 }
 
 function tick(now) {
@@ -112,14 +108,17 @@ function stopRaf() {
 function resetCard() {
     stopRaf();
     targetNX = targetNY = currNX = currNY = 0;
-    card.style.transform = "perspective(1200px) rotateX(0deg) rotateY(0deg) translateX(0px) translateY(0px) translateZ(0)";
-    reflection.style.setProperty("--px", "50%");
-    reflection.style.setProperty("--py", "50%");
+    // Remise à zéro propre avec translate3d
+    card.style.transform = "perspective(1200px) rotateX(0deg) rotateY(0deg) translate3d(0,0,0)";
+    
+    if (isFinePointer) {
+        reflection.style.setProperty("--px", "50%");
+        reflection.style.setProperty("--py", "50%");
+    }
 }
 
 /* =========================
-   ✅ OPTIMISATION GÉOMÉTRIE
-   On calcule la position UNE fois, pas à chaque mouvement
+   GEOMETRIE & EVENTS
 ========================== */
 function updateCardMetrics() {
     if (!card) return;
@@ -131,28 +130,23 @@ function updateCardMetrics() {
     cardCenterY = r.top + cardHeightHalf;
 }
 
-// Mettre à jour au chargement et au resize
 window.addEventListener("resize", updateCardMetrics);
-// Aussi au scroll car cela change la position relative au viewport
 window.addEventListener("scroll", updateCardMetrics, { passive: true });
-// Et une fois au début
-updateCardMetrics();
-
+// Delay initial update pour être sûr que le layout est fini
+setTimeout(updateCardMetrics, 100);
 
 /* =========================
-   ✅ MODE PC (souris)
+   MOUSE
 ========================== */
-tiltArea.addEventListener("mouseenter", updateCardMetrics); // Sécurité supplémentaire
+tiltArea.addEventListener("mouseenter", updateCardMetrics);
 
 tiltArea.addEventListener("mousemove", (e) => {
     if (gyroEnabled) return;
-    
-    // Si metrics pas encore calculés (cas rare), on le fait
     if (!cardRect) updateCardMetrics();
 
     const cfg = CONFIG.mouse;
     
-    // Calcul basé sur les valeurs en cache (plus de Reflow !)
+    // Calcul direct
     const dx = (e.clientX - cardCenterX) / (cardWidthHalf * cfg.zone);
     const dy = (e.clientY - cardCenterY) / (cardHeightHalf * cfg.zone);
 
@@ -168,7 +162,8 @@ tiltArea.addEventListener("mouseleave", () => {
 });
 
 /* =========================
-   ✅ MODE MOBILE (gyro)
+   GYRO (MOBILE)
+   Pas de changement majeur ici, code conservé
 ========================== */
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const needsIOSPermission = isIOS && window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === "function";
@@ -191,8 +186,8 @@ function mapToScreenAxes(gamma, beta, angle) {
 const DEADZONE = 0.02;
 const SENSOR_FILTER = 0.22;
 let filtX = 0, filtY = 0;
-let gyroRangeX = 22; // Base value
-let gyroRangeY = 22; // Base value
+let gyroRangeX = 22; 
+let gyroRangeY = 22; 
 let calibUntil = 0;
 let calibDone = true;
 let maxAbsX = 0, maxAbsY = 0;
@@ -285,7 +280,6 @@ tiltArea.addEventListener("touchmove", (e) => {
     const cfg = CONFIG.touch;
     const t = e.touches[0];
     
-    // Utilisation des metrics en cache
     const dx = (t.clientX - cardCenterX) / (cardWidthHalf * cfg.zone);
     const dy = (t.clientY - cardCenterY) / (cardHeightHalf * cfg.zone);
     
@@ -304,7 +298,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 /* =========================
-   TEXTE SLOT MACHINE
+   SLOT MACHINE TEXT
 ========================== */
 const KEY = "glitch8_history";
 const CHUNK = 10;
@@ -341,4 +335,4 @@ function animateSlot(el, finalText, duration = 2000) {
 }
 
 const el = document.getElementById("screen");
-animateSlot(el, randChunk(CHUNK), 2000);
+if(el) animateSlot(el, randChunk(CHUNK), 2000);

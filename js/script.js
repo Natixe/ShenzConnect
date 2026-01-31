@@ -1,6 +1,7 @@
 const card = document.getElementById("card");
 const tiltArea = document.getElementById("tiltArea");
-const reflection = document.getElementById("reflection");
+// On récupère l'élément reflection
+const reflection = document.getElementById("reflection"); 
 const isFinePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
 const isTouchDevice = matchMedia("(pointer: coarse)").matches;
 
@@ -15,7 +16,13 @@ const CONFIG = {
     gyro:  { tilt: 36, move: 16, smooth: 0.18 }
 };
 
-const MOBILE_FPS = 30; // Augmenté légèrement pour fluidité
+// Configuration du mouvement du reflet
+const REFLECTION_CONFIG = {
+    moveX: 60, // Combien de pixels max le reflet peut bouger horizontalement
+    moveY: 80  // Combien de pixels max le reflet peut bouger verticalement
+};
+
+const MOBILE_FPS = 30;
 const MOBILE_FRAME_DT = 1000 / MOBILE_FPS;
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
@@ -52,8 +59,9 @@ function setTransformFromNormalized(nx, ny, cfg) {
     const tx = nx * cfg.move;
     const ty = ny * cfg.move;
 
-      // Utilisation de transform3d pour forcer l'accélération matérielle
+    // Mouvement de la carte
     card.style.transform = `perspective(1200px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translate3d(${tx.toFixed(2)}px, ${ty.toFixed(2)}px, 0)`;
+
 }
 
 function tick(now) {
@@ -99,9 +107,14 @@ function stopRaf() {
 function resetCard() {
     stopRaf();
     targetNX = targetNY = currNX = currNY = 0;
-    // Remise à zéro propre avec translate3d
+    // Remise à zéro propre de la carte
     card.style.transform = "perspective(1200px) rotateX(0deg) rotateY(0deg) translate3d(0,0,0)";
     
+    // ✅ RESET DU REFLET OPTIMISÉ
+    // Quand la souris sort, on remet le reflet au centre
+    if (isFinePointer && reflection) {
+        reflection.style.transform = "translate3d(0, 0, 1px)";
+    }
 }
 
 /* =========================
@@ -129,16 +142,29 @@ tiltArea.addEventListener("mouseenter", updateCardMetrics);
 
 tiltArea.addEventListener("mousemove", (e) => {
     if (gyroEnabled) return;
+    
+    // Sécurité : si la carte n'est pas détectée, on recalcul
     if (!cardRect) updateCardMetrics();
 
+    /* --- 1. GESTION DU TILT (Inclinaison) --- */
     const cfg = CONFIG.mouse;
-    
-    // Calcul direct
+    // Position relative au centre de la carte (pour le tilt)
     const dx = (e.clientX - cardCenterX) / (cardWidthHalf * cfg.zone);
     const dy = (e.clientY - cardCenterY) / (cardHeightHalf * cfg.zone);
 
     targetNX = clamp(dx, -1, 1) * 0.5;
     targetNY = clamp(dy, -1, 1) * 0.5;
+
+    /* --- 2. GESTION DE LA LUMIÈRE (Spotlight) --- */
+    if (isFinePointer && reflection) {
+        // On calcule la position de la souris PAR RAPPORT au coin haut-gauche de la carte
+        const mouseX = e.clientX - cardRect.left;
+        const mouseY = e.clientY - cardRect.top;
+        
+        // Grâce au CSS (margin negatif), on applique directement ces coordonnées.
+        // translate3d(x, y, 2px) -> le 2px en Z assure que la lumière flotte au dessus
+        reflection.style.transform = `translate3d(${mouseX.toFixed(1)}px, ${mouseY.toFixed(1)}px, 5px)`;
+    }
 
     startRaf();
 });

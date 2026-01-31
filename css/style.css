@@ -11,7 +11,6 @@
 
 body {
   background-color: #000;
-  /* Fond de base simple et performant */
   background: #000;
   overflow: hidden;
 }
@@ -25,44 +24,34 @@ body {
   isolation: isolate;
 }
 
-/* ✅ CORRECTION LAG : 
-   Au lieu de flouter (blur) de petits éléments et de les agrandir, 
-   on dessine directement de grands dégradés transparents.
-   Le rendu est identique mais charge GPU = 0.
-*/
-
+/* LUMIÈRES AMBIANTES FIXES (NO LAG) */
 .ambient-light,
 .ambient-light-top-right {
   position: fixed;
-  z-index: 0; /* Derrière tout le reste */
-  pointer-events: none; /* Ne bloque pas le clic */
-  will-change: transform; /* Optimisation compositing */
+  z-index: 0;
+  pointer-events: none;
+  will-change: transform;
   border-radius: 50%;
 }
 
-/* Lumière Verte/Bleutée (Bas Gauche) */
 .ambient-light {
-  bottom: -25vh; /* Positionnement large */
+  bottom: -25vh;
   left: -25vw;
-  width: 100vw;  /* Grande taille native */
+  width: 100vw;
   height: 100vw;
-  
-  /* Le gradient fait le flou naturellement */
   background: radial-gradient(
     circle,
-    rgba(0, 255, 120, 0.18) 0%,   /* Coeur lumineux mais doux */
-    rgba(0, 255, 170, 0.05) 40%,  /* Diffusion large */
-    transparent 70%               /* Fin invisible */
+    rgba(0, 255, 120, 0.18) 0%,
+    rgba(0, 255, 170, 0.05) 40%,
+    transparent 70%
   );
 }
 
-/* Lumière Cyan/Blanche (Haut Droite) */
 .ambient-light-top-right {
   top: -30vh;
   right: -30vw;
   width: 110vw;
   height: 110vw;
-  
   background: radial-gradient(
     circle,
     rgba(0, 255, 170, 0.15) 0%,
@@ -71,23 +60,9 @@ body {
   );
 }
 
-/* Ajustements pour petits écrans (Mobile) */
 @media (max-width: 768px) {
-  .ambient-light {
-    width: 140vw;
-    height: 140vw;
-    opacity: 0.8;
-    bottom: -15vh;
-    left: -35vw;
-  }
-  
-  .ambient-light-top-right {
-    width: 130vw;
-    height: 130vw;
-    opacity: 0.8;
-    top: -20vh;
-    right: -40vw;
-  }
+  .ambient-light { width: 140vw; height: 140vw; opacity: 0.8; bottom: -15vh; left: -35vw; }
+  .ambient-light-top-right { width: 130vw; height: 130vw; opacity: 0.8; top: -20vh; right: -40vw; }
 }
 
 /* =========================================
@@ -100,7 +75,6 @@ body {
   align-items: center;
   gap: clamp(14px, 2.2vh, 22px);
   z-index: 2;
-  /* Évite que le texte ne force des recalculs de layout */
   transform: translateZ(0);
 }
 
@@ -122,9 +96,8 @@ body {
 
 @media (hover: hover) and (pointer: fine) {
   .tilt-area {
-    /* Zone de tilt agrandie pour Desktop */
     padding: clamp(40px, 8vw, 160px);
-    margin-bottom: -40px; /* Ajustement visuel */
+    margin-bottom: -40px;
   }
 }
 
@@ -133,34 +106,21 @@ body {
   aspect-ratio: 520 / 325;
   position: relative;
   transform-style: preserve-3d;
+  will-change: transform;
   -webkit-transform-style: preserve-3d;
   cursor: pointer;
   z-index: 2;
-  /* Ombre : on garde spread faible pour perf */
   box-shadow:
-    0 0 12px rgba(255,255,255,0.14),
+    0 0 12px rgba(255,255,255,0.16),
     0 20px 45px rgba(0,0,0,0.72);
-  will-change: transform;
   transform: perspective(1200px) rotateX(0deg) rotateY(0deg) translateZ(0);
   border-radius: 16px;
   background-color: #000;
 }
 
-@media (max-width: 480px) {
-  .card-container {
-    border-radius: 6px;
-  }
-}
-
-/* Désactive transition sur mobile pour réactivité tactile */
-@media (pointer: coarse) {
-  .card-container { transition: none; }
-}
-
-/* Transition douce au retour de la souris */
-@media (hover: hover) and (pointer: fine) {
-  .card-container { transition: transform 0.10s ease-out; }
-}
+@media (max-width: 480px) { .card-container { border-radius: 6px; } }
+@media (pointer: coarse) { .card-container { transition: none; } }
+@media (hover: hover) and (pointer: fine) { .card-container { transition: transform 0.10s ease-out; } }
 
 .card-face {
   position: absolute;
@@ -180,12 +140,9 @@ body {
   background-color: #1a1a1a; 
 }
 
-/* Support WebP natif */
 @supports (background-image: image-set(url("x.webp") type("image/webp"))) {
   .card-front {
-    background-image: image-set(
-      url("../assets/americanexpress.webp") type("image/webp")
-    );
+    background-image: image-set(url("../assets/americanexpress.webp") type("image/webp"));
   }
 }
 
@@ -193,49 +150,50 @@ body {
    3. EFFETS VISUELS (Reflets / Shine)
    ========================================= */
 
+/* ✅ REFLET SPOTLIGHT (CORRIGÉ) */
 .reflection {
   position: absolute;
-  inset: 0;
-  border-radius: 18px;
-  pointer-events: none;
-  transform: translateZ(1px);
+  z-index: 50; /* Très haut pour passer devant */
   
-  /* On remplace le gradient dynamique par un gradient statique brillant */
+  width: 500px;
+  height: 500px;
+  
+  /* Centrage par défaut (important pour le JS) */
+  top: 0;
+  left: 0;
+  margin-left: -250px;
+  margin-top: -250px;
+  
+  border-radius: 50%;
+  pointer-events: none;
+  
+  /* Dégradé puissant */
   background: radial-gradient(
-    circle at 50% 50%, 
-    rgba(255,255,255,0.25) 0%, 
-    rgba(255,255,255,0.05) 40%, 
-    rgba(255,255,255,0) 70%
+    circle at center,
+    rgba(255, 255, 255, 1.0) 0%,   /* Blanc pur au centre */
+    rgba(255, 255, 255, 0.6) 25%, 
+    rgba(255, 255, 255, 0.1) 60%, 
+    transparent 85%
   );
   
-  /* Le mix-blend-mode overlay est TRÈS gourmand en ressources GPU */
-  /* On le remplace par une opacité simple qui est gratuite pour le GPU */
-  opacity: 0; 
-  transition: opacity 0.3s ease;
+  mix-blend-mode: overlay;
+  
+  opacity: 0;
+  will-change: transform, opacity;
+  transform: translateZ(5px); /* Surélévation pour visibilité */
+  transition: opacity 0.3s ease-out;
 }
 
-/* Au survol, on allume simplement la lumière au centre */
+/* Apparition au survol uniquement sur PC */
 @media (hover: hover) and (pointer: fine) {
   .card-container:hover .reflection {
     opacity: 1;
   }
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .reflection {
-    opacity: 0.50;
-    mix-blend-mode: overlay; 
-    background:
-      radial-gradient(
-        circle at var(--px) var(--py),
-        rgba(255,255,255,0.42),
-        rgba(255,255,255,0.14) 30%,
-        rgba(255,255,255,0) 60%
-      ),
-      linear-gradient(120deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 60%);
-  }
-}
+/* ❌ J'AI SUPPRIMÉ LE BLOC CONFLICTUEL ICI QUI UTILISAIT var(--px) */
 
+/* EFFET SHINE (BANDE PASSANTE) */
 .shine {
   position: absolute;
   inset: 0;
@@ -247,13 +205,8 @@ body {
   z-index: 3;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .shine { animation: shine 12s infinite; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .shine { animation: none; opacity: 0.25; }
-}
+@media (prefers-reduced-motion: no-preference) { .shine { animation: shine 12s infinite; } }
+@media (prefers-reduced-motion: reduce) { .shine { animation: none; opacity: 0.25; } }
 
 @keyframes shine {
   0% { transform: translateX(-120%) translateZ(2px); }
@@ -282,33 +235,19 @@ body {
   transform: translateZ(0);
 }
 
-@media (max-width: 480px) {
-  .glitch-text {
-    font-size: calc(clamp(14px, 3.2vw, 42px) * 1.3);
-  }
-}
+@media (max-width: 480px) { .glitch-text { font-size: calc(clamp(14px, 3.2vw, 42px) * 1.3); } }
 
-.glitch-text::before,
-.glitch-text::after {
-  content: attr(data-text);
-  position: absolute;
-  inset: 0;
-  opacity: .75;
-  pointer-events: none;
+.glitch-text::before, .glitch-text::after {
+  content: attr(data-text); position: absolute; inset: 0; opacity: .75; pointer-events: none;
 }
-
 .glitch-text::before { color: #2bfff3; transform: translate(2px,0); }
 .glitch-text::after { color: #ff2bd6; transform: translate(-2px,0); }
 
-/* Ajustement final de la grille */
 @media (hover: hover) and (pointer: fine) {
   .tilt-area {
     --pad: clamp(40px, 8vw, 160px);
     padding: var(--pad);
     margin-bottom: calc(-1 * (var(--pad) - 10px));
   }
-  #screen {
-    position: relative;
-    z-index: 5;
-  }
+  #screen { position: relative; z-index: 5; }
 }

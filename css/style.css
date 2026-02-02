@@ -228,18 +228,39 @@ body {
   position: relative;
   line-height: 1;
   pointer-events: all;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: clip;
+  
+  /* 1. On garde l'agrandissement de la zone de clic */
+  overflow: visible; 
+  padding: 20px 30px; 
+  margin: -20px -30px;
   cursor: pointer;
   transform: translateZ(0);
+
+  /* ✅ NOUVEAU : On utilise Flexbox pour centrer le VRAI texte parfaitement au milieu du padding */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (max-width: 480px) { .glitch-text { font-size: calc(clamp(14px, 3.2vw, 42px) * 1.3); } }
 
 .glitch-text::before, .glitch-text::after {
-  content: attr(data-text); position: absolute; inset: 0; opacity: .75; pointer-events: none;
+  content: attr(data-text); 
+  position: absolute; 
+  inset: 0; 
+  opacity: .75; 
+  pointer-events: none;
+  
+  /* ✅ NOUVEAU : On force aussi le centrage du texte "fantôme" (Cyan/Magenta) */
+  /* Comme ils remplissent toute la boîte (inset:0), il faut centrer leur contenu pour qu'il s'aligne avec le vrai texte */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+
+
+
 .glitch-text::before { color: #2bfff3; transform: translate(2px,0); }
 .glitch-text::after { color: #ff2bd6; transform: translate(-2px,0); }
 
@@ -250,4 +271,63 @@ body {
     margin-bottom: calc(-1 * (var(--pad) - 10px));
   }
   #screen { position: relative; z-index: 5; }
+}
+
+/* Conteneur global pour aligner Logo + Texte */
+.code-line-wrapper {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+    position: relative;
+    z-index: 10;
+
+    /* --- AJUSTEMENT TAILLE CLIQUABLE --- */
+    
+    /* 1. On ajoute de l'épaisseur invisible autour (la zone de clic) */
+    /* Haut/Bas: 40px, Gauche/Droite: 60px */
+    padding: 40px 60px; 
+
+    /* 2. On applique une marge négative équivalente vers le HAUT */
+    /* Cela empêche le texte de descendre et conserve la distance exacte avec la carte */
+    margin-top: -40px;
+    
+    /* 3. (Optionnel) Marge négative vers le BAS si tu ne veux pas pousser les éléments en dessous */
+    margin-bottom: -40px;
+
+    /* Décommente la ligne ci-dessous pour visualiser la zone cliquable en rouge temporairement */
+    /* border: 1px solid red; */
+}
+
+/* Style du slot du logo PENDANT l'animation (les lettres qui défilent) */
+.slot-char {
+  /* 1. La même police que .glitch-text */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  
+  /* 2. La même taille */
+  font-size: clamp(16px, 3.2vw, 42px);
+  
+  /* 3. COULEUR & GLOW (C'est ça qui manquait pour l'effet néon) */
+  color: #b8fffb;
+  text-shadow: 0 0 18px rgba(43,255,243,.22);
+  
+  /* 4. Mise en page */
+  min-width: 1em;
+  text-align: center;
+  display: inline-block; /* Assure que le transform fonctionne si besoin */
+}
+
+.discord-icon {
+  height: 0.9em; /* Légèrement plus petit pour matcher la hauteur des majuscules */
+  width: auto;
+  display: inline-block;
+  position: relative;
+  top: 6px; /* Petit offset vertical pour centrer optiquement avec la police monospace */
+  filter: drop-shadow(0 0 5px rgba(43, 255, 243, 0.6));
+}
+
+/* Ajustement du texte pour qu'il ne bouge pas */
+#text-slot {
+  margin: 0;
+  padding: 0;
 }

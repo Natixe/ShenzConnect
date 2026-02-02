@@ -311,41 +311,90 @@ document.addEventListener("visibilitychange", () => {
 });
 
 /* =========================
-   SLOT MACHINE TEXT
+   SLOT MACHINE TEXT (DOUBLES SLOTS & GLITCH COMPLET)
 ========================== */
-const KEY = "glitch8_history";
-const CHUNK = 10;
 const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}?/\\|⌁∆∑πΩΦΨ⟊⟡¢";
 const rand = (n) => (Math.random() * n) | 0;
 
-function randChunk(len = CHUNK) {
+function randChunk(len) {
     let s = "";
     for (let i = 0; i < len; i++) s += CHARSET[rand(CHARSET.length)];
     return s;
 }
 
-function animateSlot(el, finalText, duration = 2000) {
-    const len = finalText.length;
-    const settleTimes = Array.from({ length: len }, (_, i) => ((i + 1) / len) * duration);
+function animateHybridSlot(logoEl, textEl, finalText, duration = 2500) {
+    const logoHTML = '<img src="assets/DiscordLogoPixel.webp" class="discord-icon" alt="Discord" />';
+    
+    // Le slot 0 est le logo, les suivants sont le texte
+    const totalSlots = 1 + finalText.length; 
+    const settleTimes = Array.from({ length: totalSlots }, (_, i) => ((i + 1) / totalSlots) * duration);
+    
     const start = performance.now();
 
     function frame(now) {
         const t = now - start;
-        let out = "";
-        for (let i = 0; i < len; i++) {
-            out += (t >= settleTimes[i]) ? finalText[i] : CHARSET[rand(CHARSET.length)];
+        
+        // --- GESTION DU LOGO (Slot 0) ---
+        const logoSettled = t >= settleTimes[0];
+        
+        if (logoSettled) {
+            // Animation finie pour le logo
+            if (logoEl.innerHTML !== logoHTML) {
+                logoEl.innerHTML = logoHTML;
+                // IMPORTANT : On vide data-text pour supprimer les fantômes (::before/::after)
+                // sinon ils resteraient par-dessus l'image
+                logoEl.dataset.text = ""; 
+                // On garde la classe glitch-text pour la position, mais sans data-text, l'effet disparaît proprement
+            }
+        } else {
+            // Animation en cours : On simule le glitch complet
+            const char = CHARSET[rand(CHARSET.length)];
+            logoEl.textContent = char;
+            // On met à jour data-text pour que le CSS ::before et ::after s'affichent (Cyan/Magenta)
+            logoEl.dataset.text = char; 
         }
-        el.textContent = out;
-        el.dataset.text = out;
-        if (t < duration) {
+
+        // --- GESTION DU TEXTE (Slots 1+) ---
+        let textString = "";
+        
+        for (let i = 1; i < totalSlots; i++) {
+            const charIndex = i - 1;
+            const isSettled = t >= settleTimes[i];
+            
+            if (isSettled) {
+                textString += finalText[charIndex];
+            } else {
+                textString += CHARSET[rand(CHARSET.length)];
+            }
+        }
+
+        textEl.textContent = textString;
+        textEl.dataset.text = textString;
+
+        if (t < duration + 200) {
             requestAnimationFrame(frame);
         } else {
-            el.textContent = finalText;
-            el.dataset.text = finalText;
+            // État final forcé
+            logoEl.innerHTML = logoHTML;
+            logoEl.dataset.text = ""; // S'assurer que le glitch est éteint sur le logo
+            
+            textEl.textContent = finalText;
+            textEl.dataset.text = finalText;
         }
     }
+    
     requestAnimationFrame(frame);
 }
 
-const el = document.getElementById("screen");
-if(el) animateSlot(el, randChunk(CHUNK), 2000);
+// Lancement
+const logoSlot = document.getElementById("logo-slot");
+const textSlot = document.getElementById("text-slot");
+
+if (logoSlot && textSlot) {
+    animateHybridSlot(logoSlot, textSlot, randChunk(10), 2000);
+    
+    textSlot.parentElement.style.cursor = "pointer";
+    textSlot.parentElement.addEventListener("click", function() {
+        window.open("https://discord.gg/thCahmw4tW", "_blank");
+    });
+}
